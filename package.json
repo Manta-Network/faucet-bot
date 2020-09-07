@@ -1,0 +1,28 @@
+{
+  "name": "new-faucet-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "qiuhao <qiuhao951@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@acala-network/api": "^0.3.1",
+    "@polkadot/api": "^1.31.2",
+    "@types/koa": "^2.11.4",
+    "@types/koa-bodyparser": "^4.3.0",
+    "@types/koa-router": "^7.4.1",
+    "@types/node": "^14.6.3",
+    "@types/redis": "^2.8.27",
+    "dayjs": "^1.8.35",
+    "koa": "^2.13.0",
+    "koa-bodyparser": "^4.3.0",
+    "koa-router": "^9.4.0",
+    "koa-winston": "^0.0.1",
+    "koa2-winston": "^3.1.1",
+    "redis": "^3.0.2",
+    "toml": "^3.0.0",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.2",
+    "util": "^0.12.3",
+    "winston": "^3.3.3"
+  }
+}
