@@ -72,10 +72,10 @@ export class Service {
         });
     }
 
-    public async queryBalance (tokens: string[]) {
-        const result = await Promise.all(tokens.map((token) => (this.api as any).derive.currencies.balance(this.account.address, token)))
+    public async queryBalance () {
+        const result = await Promise.all(this.config.tokens.map((token) => (this.api as any).derive.currencies.balance(this.account.address, token)))
         
-        return tokens.map((token, index) => {
+        return this.config.tokens.map((token, index) => {
             return {
                 token: token,
                 balance: result[index] ? formatToReadable((result[index] as Balance).toString(), this.config.precision) : 0

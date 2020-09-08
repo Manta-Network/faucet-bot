@@ -9,6 +9,7 @@ import { Storage } from './util/storage';
 import { TaskQueue } from './task-queue';
 import api from './channel/api';
 import { Service } from './services';
+import { Matrix } from './channel/matrix';
 
 async function run () {
     const config = loadConfig();
@@ -42,6 +43,10 @@ async function run () {
     api({ ...config.channel.api, service }).then(() => {
         logger.info(`🚀  faucet api launced at port:${config.channel.api.port}.`);
     });
+
+    const matrix = new Matrix({ config: config.channel.matrix, storage, service });
+
+    await matrix.start();
 }
 
 run();

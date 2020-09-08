@@ -11,6 +11,7 @@ export interface Config {
     faucet: {
         endpoint: string;
         precision: number;
+        tokens: string[];
         account: {
             mnemonic: string;
         };
@@ -32,8 +33,7 @@ export interface Config {
         },
         matrix: {
             token: string;
-            userId: string;
-            address: number;
+            limit: number;
             frequency: [string, OpUnitType]
         },
         discord: {
