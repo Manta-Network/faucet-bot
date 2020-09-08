@@ -3,12 +3,12 @@ import bodyParser from 'koa-bodyparser';
 import Router from 'koa-router';
 import { queryBalances } from './balances';
 import { loggerMiddware } from './middlewares/logger';
-import { Services } from '../services';
+import { Service } from '../../services';
 import { sendAssets } from './faucet';
 
 export interface ApiConfig {
     port: string | number;
-    service: Services;
+    service: Service;
 }
 
 export default async function (config: ApiConfig) {

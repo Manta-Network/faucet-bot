@@ -1,11 +1,14 @@
 import { Keyring, WsProvider } from '@polkadot/api';
 import { assert } from '@polkadot/util';
 import { waitReady } from '@polkadot/wasm-crypto';
+import { options } from '@acala-network/api';
+
 import { loadConfig } from './util/config';
 import logger from './util/logger';
-import api from './api';
-import { Services } from './services';
-import { options } from '@acala-network/api';
+import { Storage } from './util/storage';
+import { TaskQueue } from './task-queue';
+import api from './channel/api';
+import { Service } from './services';
 
 async function run () {
     const config = loadConfig();
@@ -17,8 +20,16 @@ async function run () {
 
     const keyring = new Keyring({ type: 'sr25519' });
     const account = keyring.addFromMnemonic(config.faucet.account.mnemonic);
+    const storage = new Storage(config.storage);
+    const taskQueue = new TaskQueue(config.task);
 
-    const service = new Services({ account });
+    const service = new Service({
+        account,
+        storage,
+        taskQueue,
+        config: config.faucet,
+        template: config.template,
+    });
 
     const provider = new WsProvider(config.faucet.endpoint);
 
@@ -26,13 +37,10 @@ async function run () {
 
     const chainName = await service.getChainName();
 
-    logger.info(`✊  connected to ${chainName}`);
+    logger.info(`✊  connected to ${chainName}, faucet is ready.`);
 
-    const result = await (service.api.rpc as any).oracle.getAllValues();
-    console.log(Object.keys(service.api.rpc), result.toString());
-
-    api({ port: config.api.port, service }).then(() => {
-        logger.info(`🚀  faucet launced at port:${config.api.port}`);
+    api({ ...config.channel.api, service }).then(() => {
+        logger.info(`🚀  faucet api launced at port:${config.channel.api.port}.`);
     });
 }
 

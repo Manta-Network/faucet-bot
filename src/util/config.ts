@@ -1,10 +1,8 @@
 import toml from 'toml'
 import { readFileSync } from 'fs';
+import { OpUnitType } from 'dayjs';
 
 export interface Config {
-    api: {
-        port: number | number
-    },
     storage: {
         redis: {
             url: string
@@ -12,30 +10,45 @@ export interface Config {
     },
     faucet: {
         endpoint: string;
+        precision: number;
         account: {
             mnemonic: string;
         };
+        strategy: {
+            [k in string]: {
+                amounts: { asset: string, amount: number}[];
+                limit: number;
+                frequency: [string, OpUnitType]
+            }
+        }
     },
-    jobs: {
-        maxJobs: number;
-    },
-    errorCode: {
-        [k in number]: string;
+    task: {
+        redis: string;
+        maxPendingCount: number;
     },
     channel: {
-        limit: {
-            account: number;
-            address: number;
-            frequency: [string, string]
-        }
+        api: {
+            port: number | number
+        },
         matrix: {
             token: string;
             userId: string;
+            address: number;
+            frequency: [string, OpUnitType]
         },
         discord: {
             token: string;
+            address: number;
+            frequency: [string, OpUnitType]
         }
-    }
+    },
+    template: {
+        [k in string]: string;
+    } & {
+        error: {
+            [k in string]: string;
+        }
+    },
 }
 
 export const loadConfig = (path = 'config.toml'): Config => {

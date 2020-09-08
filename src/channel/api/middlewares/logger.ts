@@ -1,7 +1,7 @@
 import { Logger, LeveledLogMethod } from 'winston';
 import { Middleware } from 'koa';
 
-import logger from '../../util/logger';
+import logger from '../../../util/logger';
 
 const getLoggerLevel = (code: number, logger: Logger): LeveledLogMethod => {
     switch(Math.floor(code / 100)) {

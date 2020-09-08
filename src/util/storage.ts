@@ -3,8 +3,8 @@ import dayjs, { OpUnitType } from 'dayjs';
 import { promisify } from 'util';
 import { LimitConfig } from '../types';
 
-interface StorageOptions extends ClientOpts {
-    redisOptions: ClientOpts;
+interface StorageOptions {
+    redis: ClientOpts;
 }
 
 export class Storage {
@@ -14,8 +14,8 @@ export class Storage {
     private incr: (key: string) => Promise<number>;
     private expireat: (key: string, timestamp: number) => Promise<number>;
 
-    constructor({ redisOptions }: StorageOptions) {
-        this.client = redis.createClient(redisOptions);
+    constructor({ redis: redisConfig }: StorageOptions) {
+        this.client = redis.createClient(redisConfig);
 
         this.get = promisify(this.client.get).bind(this.client);
         this.set = promisify(this.client.set).bind(this.client) as (key: string, value: string) => Promise<'OK' | undefined>;
@@ -23,8 +23,8 @@ export class Storage {
         this.expireat = promisify(this.client.expireat).bind(this.client);
     }
 
-    async incKeyCount (key: string, frequency: [number, OpUnitType]): Promise<number> {
-        const expireTime = dayjs().add(frequency[0], frequency[1]).endOf('day').unix();
+    async incKeyCount (key: string, frequency: [string, OpUnitType]): Promise<number> {
+        const expireTime = dayjs().add(Number(frequency[0]), frequency[1]).startOf(frequency[1]).unix();
 
         // preset expire time
         await this.expireat(key, expireTime);
