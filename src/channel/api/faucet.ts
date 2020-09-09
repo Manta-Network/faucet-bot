@@ -13,6 +13,7 @@ export const sendAssets = (service: Service): Router.IMiddleware => async (ctx) 
             strategy: 'normal',
             address: ctx.request.body.address,
             channel: {
+                account: '',
                 name: 'api'
             }
         });
@@ -28,6 +29,5 @@ export const sendAssets = (service: Service): Router.IMiddleware => async (ctx) 
         };
 
         logger.error(e);
-
     }
 }

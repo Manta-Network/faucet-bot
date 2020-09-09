@@ -17,6 +17,7 @@
     "bignumber.js": "^9.0.0",
     "bull": "^3.18.0",
     "dayjs": "^1.8.35",
+    "discord.js": "^12.3.1",
     "koa": "^2.13.0",
     "koa-bodyparser": "^4.3.0",
     "koa-router": "^9.4.0",

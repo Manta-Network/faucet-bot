@@ -1,81 +1,147 @@
-import {
-    MatrixClient,
-    SimpleFsStorageProvider,
-    AutojoinRoomsMixin,
-    RichReply,
-} from "matrix-bot-sdk";
-import { Storage } from '../util/storage';
+import * as sdk from "matrix-js-sdk";
+import { Storage } from "../util/storage";
 import { Service } from "../services";
 import { Config } from "../util/config";
+import { ChannelBase } from "./base";
+import logger from "../util/logger";
 
 interface MatrixChannelConfig {
-    config: Config['channel']['matrix'];
-    storage: Storage;
-    service: Service;
+  config: Config["channel"]["matrix"];
+  storage: Storage;
+  service: Service;
 }
 
-export class Matrix {
-    private client: MatrixClient;
-    private storage: Storage;
-    private service: Service;
-    private config: Config['channel']['matrix'];
+export class MatrixChannel extends ChannelBase {
+  private client: any;
+  private service: Service;
+  private config: Config["channel"]["matrix"];
 
-    constructor (config: MatrixChannelConfig) {
-        const homeserverUrl = "https://matrix.org";
-        const storage = new SimpleFsStorageProvider("hello-bot.json");
+  constructor(config: MatrixChannelConfig) {
+    super(
+      "matrix",
+      config.config.limit,
+      config.config.frequency,
+      config.storage
+    );
 
-        this.config = config.config;
-        this.storage = config.storage;
-        this.service = config.service;
-        this.client = new MatrixClient(homeserverUrl, this.config.token, storage);
+    this.config = config.config;
+    this.service = config.service;
 
-        AutojoinRoomsMixin.setupOnClient(this.client);
+    // create matrix client
+    this.client = sdk.createClient({
+      baseUrl: "https://matrix.org",
+      // @ts-ignore
+      accessToken: this.config.token,
+      userId: this.config.userId,
+      localTimeoutMs: 10000,
+    });
+
+    this.sendSuccessMessage = this.sendSuccessMessage.bind(this);
+  }
+
+  async start() {
+    await this.client.startClient({ initialSyncLimit: 10 });
+
+    this.service.registMessageHander(this.channelName, this.sendSuccessMessage);
+    this.client.on("Room.timeline", (event: any) => {
+      this.messageHandler(event);
+    });
+  }
+
+  sendSuccessMessage (channel: Record<string, string>, amount: string, tx: string) {
+    this.client.sendHtmlMessage(
+      channel.roomId,
+      '',
+      this.service.getMessage('roitSuccess', {
+        amount,
+        tx,
+        account: channel.account,
+      })
+    );
+  }
+
+  async sendMessage(roomId: string, msg: string) {
+    if (!msg || !roomId) return;
+
+    this.client.sendEvent(
+      roomId,
+      "m.room.message",
+      { body: msg, msgtype: "m.text" },
+      "",
+      (error: any) => error && logger.error(error)
+    );
+  }
+
+  async messageHandler(event: any) {
+    if (event.getType() !== "m.room.message") return;
+
+    const {
+      content: { body },
+      room_id: roomId,
+      sender: account,
+    } = event.event;
+
+    if (!body) return;
+
+    const [command, param1] = this.getCommand(body);
+
+    if (command === "!faucet") {
+      this.sendMessage(roomId, this.service.usage());
     }
 
-    async start () {
-        await this.client.start();
+    if (command === "!balance") {
+      const balances = await this.service.queryBalance();
 
-        this.client.on('room.message', (roomId, event) => {
-            this.messageHandler(roomId, event);
-        });
+      this.sendMessage(
+        roomId,
+        this.service.getMessage("balance", {
+          account,
+          balance: balances
+            .map((item) => `${item.token}: ${item.balance}`)
+            .join(", "),
+        })
+      );
     }
 
-    async messageHandler (roomId: any, event: any) {
-        const { body, msgtype } = event.content;
-        const account = event.sender;
+    if (command === "!drip") {
+      const isReachLimit = await this.checkLimit(account);
 
-        if (msgtype !== 'm.text') return;
+      if (isReachLimit) {
+        this.sendMessage(
+          roomId,
+          this.service.getErrorMessage("LIMIT", { account })
+        );
 
-        if (!body) return;
+        return;
+      }
 
-        if (body === '!faucet') {
-            this.client.sendMessage(roomId, { msgtype: 'm.text', body: this.service.usage() });
-        }
+      const address = param1;
 
-        if (body === '!balance') {
-            this.client.sendMessage(roomId, { msgtype: 'm.text', body: this.service.queryBalance() });
-        }
+      try {
+        // increase key count immediately
+        await this.updateKeyCount(account);
 
-        if (body === '!drip') {
-            const key = `matrix-${account}`;
-            const count = await this.storage.getKeyCount(key);
-            const address = body.split(/\t/)[1];
-
-            if (count >= this.config.limit) {
-                this.client.sendMessage(roomId, { msgtype: 'm.text', body: this.service.getErrorMessage('LIMIT') });
-
-                return;
+        await this.service
+          .faucet({
+            strategy: "normal",
+            address: address,
+            channel: {
+              name: this.channelName,
+              account: account,
+              roomId: roomId
             }
+          })
+          .catch((e) => {
+            throw new Error(e);
+          });
+      } catch (e) {
+        await this.rollbackKeyCount(account);
 
-            try {
-                this.service.faucet({
-                    strategy: 'normal',
-                    address: address,
-                    channel: { name: 'matrix', account: account }
-                });
-            } catch (e) {
-                this.client.sendMessage(roomId, { msgtype: 'm.text', body: e });
-            }
-        }
+        this.sendMessage(
+          roomId,
+          this.service.getErrorMessage("COMMON_ERROR", { account })
+        );
+      }
     }
+  }
 }

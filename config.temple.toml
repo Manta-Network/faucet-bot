@@ -1,0 +1,73 @@
+[storage]
+[storage.redis]
+url = "redis://127.0.0.1:6379"
+
+[task]
+redis = "redis://127.0.0.1:6379"
+maxPendingCount = 20
+
+[faucet]
+endpoint = "wss://testnet-node-1.acala.laminar.one/ws"
+precision = 18
+assets = ['ACA', 'AUSD']
+
+[faucet.account]
+mnemonic = "MNEMONIC"
+  
+[faucet.strategy]
+[faucet.strategy.normal]
+amounts = [
+  { asset = 'ACA', amount = 2 },
+  { asset = 'AUSD', amount = 2 }
+]
+limit = 2
+frequency = ["1", "day"]
+
+[faucet.strategy.ren]
+amounts = [
+  { asset = 'RENBTC', amount = 0.2 }
+]
+limit = 10
+frequency = ["1", "month"]
+
+[channel]
+[channel.api]
+port = 3000
+
+[channel.matrix]
+token = "TOKEN"
+userId = "@test-bot:matrix.org"
+limit = 2
+frequency = ["1", "day"]
+
+[channel.discord]
+activeChannelName = 'acala-faucet-test'
+token = "TOKEN"
+limit = 2
+frequency = ["1", "day"]
+
+[template]
+usage = """
+Usage:
+  !balance - Get the faucet's balance.
+  !drip <Address> - Send Test Tokens to <Address>.
+  !faucet - Prints usage information.
+"""
+balance = "<%= account %> The faucet has ${balance} remaining."
+success = """
+  Sent <%= account %> <%= amount %>. [View on Subscan](https://acala-testnet.subscan.io/extrinsic/<%= tx %>)
+"""
+
+roitSuccess = """
+  Sent <%= account %> <%= amount %>. <a href="https://acala-testnet.subscan.io/extrinsic/<%= tx %>">Viewd on Subscan</a>
+"""
+
+[template.error]
+"COMMON_ERROR" = "<%= account %> something error, please check your input."
+"PADDING_TASK_MAX" = "Fauct is busy, please retry later."
+"LIMIT" = "<%= account %> has reached their quota. Only request 2 per 1 month."
+"NO_STRATEGY" = "No strategy found."
+"CHECK_TX_FAILED" = "Build Extrinsic Failed <%= error %>"
+"CHECK_LIMIT_FAILED" = "Check Limit Error"
+"UPDATE_LIMIT_FAILED" = "Update Limit Error"
+"INSERT_TASK_FAILED" = "Insert Task Error"

@@ -9,7 +9,8 @@ import { Storage } from './util/storage';
 import { TaskQueue } from './task-queue';
 import api from './channel/api';
 import { Service } from './services';
-import { Matrix } from './channel/matrix';
+import { MatrixChannel } from './channel/matrix';
+import { DiscordChannel } from './channel/discord';
 
 async function run () {
     const config = loadConfig();
@@ -26,8 +27,7 @@ async function run () {
 
     const service = new Service({
         account,
-        storage,
-        taskQueue,
+        storage, taskQueue,
         config: config.faucet,
         template: config.template,
     });
@@ -44,9 +44,17 @@ async function run () {
         logger.info(`🚀  faucet api launced at port:${config.channel.api.port}.`);
     });
 
-    const matrix = new Matrix({ config: config.channel.matrix, storage, service });
+    const matrix = new MatrixChannel({ config: config.channel.matrix, storage, service });
 
-    await matrix.start();
+    await matrix.start().then(() => {
+        logger.info(`🚀  matrix channel launced success`);
+    });
+
+    const discord = new DiscordChannel({ config: config.channel.discord, storage, service });
+
+    await discord.start().then(() => {
+        logger.info(`🚀  discord channel launced success`);
+    });
 }
 
 run();

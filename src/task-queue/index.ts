@@ -1,12 +1,10 @@
 import Queue from 'bull';
 import { Config } from '../util/config';
+import { SendConfig } from '../types';
 
-interface Task {
-    channel: {
-        name: string;
-        account?: string;
-    };
-    params: { token: string, balance: string, dest: string }[];
+export interface TaskData {
+    channel: Record<string, string>;
+    params: SendConfig;
 }
 
 type TaskConfig = Config['task'];
@@ -23,11 +21,11 @@ export class TaskQueue {
         });
     }
 
-    async insert (task: Task) {
+    async insert (task: TaskData) {
         return this.queue.add(task);
     }
 
-    process (callback: (task: Task) => Promise<any>) {
+    process (callback: (task: TaskData) => Promise<any>) {
         this.queue.process((data) => {
             return callback(data.data);
         });

@@ -10,45 +10,35 @@ interface StorageOptions {
 export class Storage {
     private client: RedisClient;
     private get: (key: string) => Promise<string | null>;
-    private set: (key: string, value: string) => Promise<'OK' | undefined>;
     private incr: (key: string) => Promise<number>;
+    private decr: (key: string) => Promise<number>;
     private expireat: (key: string, timestamp: number) => Promise<number>;
 
     constructor({ redis: redisConfig }: StorageOptions) {
         this.client = redis.createClient(redisConfig);
 
         this.get = promisify(this.client.get).bind(this.client);
-        this.set = promisify(this.client.set).bind(this.client) as (key: string, value: string) => Promise<'OK' | undefined>;
         this.incr = promisify(this.client.incr).bind(this.client);
+        this.decr = promisify(this.client.decr).bind(this.client);
         this.expireat = promisify(this.client.expireat).bind(this.client);
     }
 
-    async incKeyCount (key: string, frequency: [string, OpUnitType]): Promise<number> {
+    async incrKeyCount (key: string, frequency: [string, OpUnitType]): Promise<number> {
         const expireTime = dayjs().add(Number(frequency[0]), frequency[1]).startOf(frequency[1]).unix();
 
         // preset expire time
         await this.expireat(key, expireTime);
 
-        const result = await this.incr(key);
+        return this.incr(key);
+    }
 
-        return result;
+    async decrKeyCount (key: string): Promise<number> {
+        return this.decr(key);
     }
 
     async getKeyCount (key: string): Promise<number> {
         const result = await this.get(key);
         
         return Number(result) || 0;
-    }
-
-    async checkLimit (keys: string[], limitConfig: LimitConfig): Promise<boolean> {
-        for (const key of keys) {
-            const keyCount = await this.getKeyCount(key);
-
-            if (keyCount >= (limitConfig.get(key) || 0)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }
