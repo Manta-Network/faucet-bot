@@ -22,7 +22,7 @@ export class TaskQueue {
   }
 
   async insert(task: TaskData) {
-    return this.queue.add(task);
+    return this.queue.add(task, { attempts: 5, backoff: 5000 });
   }
 
   process(callback: (task: TaskData) => Promise<any>) {
