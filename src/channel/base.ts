@@ -10,22 +10,26 @@ export class ChannelBase {
     ) {}
 
     async checkLimit (account: string) {
-        const key = `${this.channelName}-${account}`;
+        const key = this.getKey(account);
         const count = await this.storage.getKeyCount(key);
 
         return count >= this.limit;
     }
 
     async updateKeyCount (account: string) {
-        const key = `${this.channelName}-${account}`;
+        const key = this.getKey(account);
 
         return this.storage.incrKeyCount(key, this.frequency); 
     }
 
     async rollbackKeyCount (account: string) {
-        const key = `${this.channelName}-${account}`;
+        const key = this.getKey(account);
 
         return this.storage.decrKeyCount(key);
+    }
+
+    getKey (account: string) {
+        return `${this.channelName}-${account}`;
     }
 
     getCommand (msg: string) {

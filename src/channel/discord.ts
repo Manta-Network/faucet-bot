@@ -47,13 +47,15 @@ export class DiscordChannel extends ChannelBase {
     amount: string,
     tx: string
   ) {
-    const channel = this.client.channels.cache.get(channelInfo.channelId) as any as Discord.TextChannel;
+    const channel = (this.client.channels.cache.get(
+      channelInfo.channelId
+    ) as any) as Discord.TextChannel;
 
     channel.send(
-      this.service.getMessage("roitSuccess", {
+      this.service.getMessage("success", {
         amount,
         tx,
-        account: channelInfo.account,
+        account: channelInfo.accountName,
       })
     );
   }
@@ -61,6 +63,7 @@ export class DiscordChannel extends ChannelBase {
   async messageHandler(msg: Discord.Message) {
     const channelName = (msg.channel as any).name;
     const account = msg.author.id;
+    const name = msg.author.username;
 
     if (channelName !== this.config.activeChannelName) return;
 
@@ -77,7 +80,7 @@ export class DiscordChannel extends ChannelBase {
 
       msg.reply(
         this.service.getMessage("balance", {
-          account,
+          account: "",
           balance: balances
             .map((item) => `${item.token}: ${item.balance}`)
             .join(", "),
@@ -89,7 +92,7 @@ export class DiscordChannel extends ChannelBase {
       const isReachLimit = await this.checkLimit(account);
 
       if (isReachLimit) {
-        msg.reply(this.service.getErrorMessage("LIMIT", { account }));
+        msg.reply(this.service.getErrorMessage("LIMIT", { account: name }));
 
         return;
       }
@@ -108,15 +111,16 @@ export class DiscordChannel extends ChannelBase {
               channelId: msg.channel.id,
               name: this.channelName,
               account: account,
+              accountName: name,
             },
           })
           .catch((e) => {
-            throw new Error(e);
+            throw e;
           });
       } catch (e) {
         await this.rollbackKeyCount(account);
 
-        msg.reply(this.service.getErrorMessage("COMMON_ERROR", { account }));
+        msg.reply(e?.message);
       }
     }
   }

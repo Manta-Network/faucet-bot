@@ -1,5 +1,5 @@
 import { ApiPromise } from "@polkadot/api";
-import { template } from "lodash";
+import { template, add } from "lodash";
 import BN from "bignumber.js";
 import { ITuple } from "@polkadot/types/types";
 import { Balance } from "@acala-network/types/interfaces";
@@ -11,6 +11,7 @@ import { Storage } from "../util/storage";
 import { SendConfig, MessageHandler } from "../types";
 import { TaskQueue, TaskData } from "../task-queue";
 import logger from "../util/logger";
+import { info } from "console";
 
 interface FaucetServiceConfig {
   account: KeyringPair;
@@ -29,11 +30,17 @@ interface FaucetParams {
   } & Record<string, string>;
 }
 
-export function formatToReadable(num: string | number, precision: number): string {
+export function formatToReadable(
+  num: string | number,
+  precision: number
+): string {
   return new BN(num).div(new BN(10 ** precision)).toFixed(4);
 }
 
-export function formatToSendable(num: string | number, precision: number): string {
+export function formatToSendable(
+  num: string | number,
+  precision: number
+): string {
   return new BN(num).multipliedBy(new BN(10 ** precision)).toFixed(0);
 }
 
@@ -45,6 +52,8 @@ export class Service {
   private storage: Storage;
   private taskQueue: TaskQueue;
   private sendMessageHandler!: Record<string, MessageHandler>;
+  private killCountdown: number = 1000 * 60;
+  private delayedKillTimeout!: NodeJS.Timeout | null;
 
   constructor({
     account,
@@ -59,26 +68,60 @@ export class Service {
     this.storage = storage;
     this.taskQueue = taskQueue;
     this.sendMessageHandler = {};
+
+    this.onConnected = this.onConnected.bind(this);
+    this.onDisconnected = this.onDisconnected.bind(this);
+  }
+
+  private onConnected() {
+    if (this.delayedKillTimeout) {
+      clearTimeout(this.delayedKillTimeout);
+      this.delayedKillTimeout = null;
+    }
+  }
+
+  private onDisconnected() {
+    this.delayedKillTimeout = setTimeout(() => {
+      process.exit(1);
+    }, this.killCountdown);
   }
 
   public async connect(options: ApiOptions) {
-    const instance = await ApiPromise.create(options);
+    this.api = await ApiPromise.create(options);
 
-    await instance.isReady.catch(() => {
+    await this.api.isReady.catch(() => {
       throw new Error("connect failed");
     });
 
-    this.api = instance;
+    this.api.on("disconnected", this.onDisconnected);
+
+    this.api.on("connected", this.onConnected);
 
     this.taskQueue.process((task: TaskData) => {
       return this.sendTokens(task.params)
         .then((tx: string) => {
-
           const sendMessage = this.sendMessageHandler[task.channel.name];
 
           if (!sendMessage) return;
 
-          sendMessage(task.channel, task.params.map(item => `${item.token}: ${formatToReadable(item.balance, this.config.precision)}`).join(', '), tx);
+          logger.info(
+            `send success, ${JSON.stringify(task.channel)} ${JSON.stringify(
+              task.params
+            )}`
+          );
+          sendMessage(
+            task.channel,
+            task.params
+              .map(
+                (item) =>
+                  `${item.token}: ${formatToReadable(
+                    item.balance,
+                    this.config.precision
+                  )}`
+              )
+              .join(", "),
+            tx
+          );
         })
         .catch(logger.error);
     });
@@ -195,10 +238,16 @@ export class Service {
   }
 
   async faucet({ strategy, address, channel }: FaucetParams): Promise<any> {
+    logger.info(
+      `requect faucet, ${JSON.stringify(
+        strategy
+      )}, ${address}, ${JSON.stringify(channel)}`
+    );
+
     const strategyDetail = this.config.strategy[strategy];
 
     try {
-      this.taskQueue.checkPendingTask();
+      await this.taskQueue.checkPendingTask();
     } catch (e) {
       throw new Error(this.getErrorMessage("PADDING_TASK_MAX"));
     }
@@ -217,7 +266,7 @@ export class Service {
 
     if (strategyDetail.limit && currentCount >= strategyDetail.limit) {
       throw new Error(
-        this.getErrorMessage("LIMIT", { sender: channel.account || address })
+        this.getErrorMessage("LIMIT", { account: channel.account || address })
       );
     }
 
@@ -231,6 +280,8 @@ export class Service {
     try {
       this.buildTx(params);
     } catch (e) {
+      logger.error(e);
+
       throw new Error(this.getErrorMessage("CHECK_TX_FAILED", { error: e }));
     }
 
@@ -252,6 +303,10 @@ export class Service {
 
       return result;
     } catch (e) {
+      logger.error(e);
+
+      await this.storage.decrKeyCount(`address_${address}`);
+
       throw new Error(this.getErrorMessage("INSERT_TASK_FAILED"));
     }
   }

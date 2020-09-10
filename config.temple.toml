@@ -7,18 +7,18 @@ redis = "redis://127.0.0.1:6379"
 maxPendingCount = 20
 
 [faucet]
-endpoint = "wss://testnet-node-1.acala.laminar.one/ws"
+endpoint = "ENDPOINT"
 precision = 18
 assets = ['ACA', 'AUSD']
 
 [faucet.account]
-mnemonic = "MNEMONIC"
+mnemonic = "CUSTOM MNEMONIC"
   
 [faucet.strategy]
 [faucet.strategy.normal]
 amounts = [
   { asset = 'ACA', amount = 2 },
-  { asset = 'AUSD', amount = 2 }
+  { asset = 'AUSD', amount = 2000 }
 ]
 limit = 2
 frequency = ["1", "day"]
@@ -33,16 +33,18 @@ frequency = ["1", "month"]
 [channel]
 [channel.api]
 port = 3000
+limit = 2
+frequency = ["1", "day"]
 
 [channel.matrix]
-token = "TOKEN"
+token = "TEST_TOKEN"
 userId = "@test-bot:matrix.org"
 limit = 2
 frequency = ["1", "day"]
 
 [channel.discord]
-activeChannelName = 'acala-faucet-test'
-token = "TOKEN"
+activeChannelName = 'faucet-test-channel'
+token = "TEST_TOKEN"
 limit = 2
 frequency = ["1", "day"]
 
@@ -58,16 +60,16 @@ success = """
   Sent <%= account %> <%= amount %>. [View on Subscan](https://acala-testnet.subscan.io/extrinsic/<%= tx %>)
 """
 
-roitSuccess = """
+riotSuccess = """
   Sent <%= account %> <%= amount %>. <a href="https://acala-testnet.subscan.io/extrinsic/<%= tx %>">Viewd on Subscan</a>
 """
 
 [template.error]
 "COMMON_ERROR" = "<%= account %> something error, please check your input."
 "PADDING_TASK_MAX" = "Fauct is busy, please retry later."
-"LIMIT" = "<%= account %> has reached their quota. Only request 2 per 1 month."
+"LIMIT" = "<%= account %> has reached their quota. Only request 2 per 1 day."
 "NO_STRATEGY" = "No strategy found."
-"CHECK_TX_FAILED" = "Build Extrinsic Failed <%= error %>"
+"CHECK_TX_FAILED" = "Build Extrinsic Failed"
 "CHECK_LIMIT_FAILED" = "Check Limit Error"
 "UPDATE_LIMIT_FAILED" = "Update Limit Error"
 "INSERT_TASK_FAILED" = "Insert Task Error"

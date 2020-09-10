@@ -48,11 +48,15 @@ export class MatrixChannel extends ChannelBase {
     });
   }
 
-  sendSuccessMessage (channel: Record<string, string>, amount: string, tx: string) {
+  sendSuccessMessage(
+    channel: Record<string, string>,
+    amount: string,
+    tx: string
+  ) {
     this.client.sendHtmlMessage(
       channel.roomId,
-      '',
-      this.service.getMessage('roitSuccess', {
+      "",
+      this.service.getMessage("riotSuccess", {
         amount,
         tx,
         account: channel.account,
@@ -128,8 +132,8 @@ export class MatrixChannel extends ChannelBase {
             channel: {
               name: this.channelName,
               account: account,
-              roomId: roomId
-            }
+              roomId: roomId,
+            },
           })
           .catch((e) => {
             throw new Error(e);
