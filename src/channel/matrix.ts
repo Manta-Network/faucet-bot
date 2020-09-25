@@ -143,7 +143,7 @@ export class MatrixChannel extends ChannelBase {
 
         this.sendMessage(
           roomId,
-          this.service.getErrorMessage("COMMON_ERROR", { account })
+          e.message ? e.message : this.service.getErrorMessage("COMMON_ERROR", { account })
         );
       }
     }

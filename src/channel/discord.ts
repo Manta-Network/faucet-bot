@@ -120,7 +120,7 @@ export class DiscordChannel extends ChannelBase {
       } catch (e) {
         await this.rollbackKeyCount(account);
 
-        msg.reply(e?.message);
+        msg.reply(e.message ? e.message : this.service.getErrorMessage("COMMON_ERROR", { account }));
       }
     }
   }
