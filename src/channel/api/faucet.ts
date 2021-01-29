@@ -18,22 +18,17 @@ export const sendAssets = (service: Service, storage: Storage, config: Config['c
   }
 
   const account = ctx.request.body.account;
-  const key = `api-${account}`;
-
-  const keyCount = await storage.getKeyCount(key);
-
-  if (keyCount >= config.limit) {
-    ctx.response.body = {
-      code: 500,
-      message: service.getErrorMessage('LIMIT', { account })
-    };
-
-    return;
-  }
-
-  await storage.incrKeyCount(key, config.frequency);
+  const strategy = ctx?.request?.body?.strategy || 'normal';
+  const key = `api-${account}-${strategy}`;
 
   try {
+
+    const keyCount = await storage.incrKeyCount(key, config.frequency);
+
+    if (keyCount > config.limit) {
+      throw new Error(service.getErrorMessage('LIMIT', { account }));
+    }
+
     const result = await service.faucet({
       strategy: ctx?.request?.body?.strategy || "normal",
       address: ctx.request.body.address,

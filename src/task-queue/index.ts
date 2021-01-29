@@ -16,9 +16,7 @@ export class TaskQueue {
   constructor(config: TaskConfig) {
     this.config = config;
 
-    this.queue = new Queue("faucet-queue", {
-      redis: config.redis,
-    });
+    this.queue = new Queue("faucet-queue", { redis: config.redis });
   }
 
   async insert(task: TaskData) {

@@ -39,31 +39,31 @@ async function run() {
 
   const chainName = await service.getChainName();
 
-  logger.info(`✊  connected to ${chainName}, faucet is ready.`);
+  logger.info(`✊ connected to ${chainName}, faucet is ready.`);
 
   api({ config: config.channel.api, service, storage }).then(() => {
-    logger.info(`🚀  faucet api launced at port:${config.channel.api.port}.`);
+    logger.info(`🚀 faucet api launced at port:${config.channel.api.port}.`);
   });
 
-  const matrix = new MatrixChannel({
-    config: config.channel.matrix,
-    storage,
-    service,
-  });
+  // const matrix = new MatrixChannel({
+  //   config: config.channel.matrix,
+  //   storage,
+  //   service,
+  // });
 
-  await matrix.start().then(() => {
-    logger.info(`🚀  matrix channel launced success`);
-  });
+  // await matrix.start().then(() => {
+  //   logger.info(`🚀 matrix channel launced success`);
+  // });
 
-  const discord = new DiscordChannel({
-    config: config.channel.discord,
-    storage,
-    service,
-  });
+  // const discord = new DiscordChannel({
+  //   config: config.channel.discord,
+  //   storage,
+  //   service,
+  // });
 
-  await discord.start().then(() => {
-    logger.info(`🚀  discord channel launced success`);
-  });
+  // await discord.start().then(() => {
+  //   logger.info(`🚀 discord channel launced success`);
+  // });
 }
 
 run();

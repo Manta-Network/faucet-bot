@@ -26,6 +26,8 @@ export class Storage {
     key: string,
     frequency: [string, OpUnitType]
   ): Promise<number> {
+    const amount = await this.incr(key);
+
     const expireTime = dayjs()
       .add(Number(frequency[0]), frequency[1])
       .startOf(frequency[1])
@@ -34,7 +36,7 @@ export class Storage {
     // preset expire time
     await this.expireat(key, expireTime);
 
-    return this.incr(key);
+    return amount;
   }
 
   async decrKeyCount(key: string): Promise<number> {

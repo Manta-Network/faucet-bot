@@ -1,17 +1,18 @@
 import { ApiPromise } from "@polkadot/api";
-import { template, add } from "lodash";
+import { template } from "lodash";
 import BN from "bignumber.js";
 import { ITuple } from "@polkadot/types/types";
 import { Balance } from "@acala-network/types/interfaces";
 import { DispatchError } from "@polkadot/types/interfaces";
 import { ApiOptions } from "@polkadot/api/types";
 import { KeyringPair } from "@polkadot/keyring/types";
+
 import { Config } from "../util/config";
 import { Storage } from "../util/storage";
 import { SendConfig, MessageHandler } from "../types";
 import { TaskQueue, TaskData } from "../task-queue";
 import logger from "../util/logger";
-import { info } from "console";
+import { Deferred } from "../util/deferred";
 
 interface FaucetServiceConfig {
   account: KeyringPair;
@@ -53,7 +54,7 @@ export class Service {
   private taskQueue: TaskQueue;
   private sendMessageHandler!: Record<string, MessageHandler>;
   private killCountdown: number = 1000 * 60;
-  private delayedKillTimeout!: NodeJS.Timeout | null;
+  private killTimer!: NodeJS.Timeout | null;
 
   constructor({
     account,
@@ -74,14 +75,14 @@ export class Service {
   }
 
   private onConnected() {
-    if (this.delayedKillTimeout) {
-      clearTimeout(this.delayedKillTimeout);
-      this.delayedKillTimeout = null;
+    if (this.killTimer) {
+      clearTimeout(this.killTimer);
+      this.killTimer = null;
     }
   }
 
   private onDisconnected() {
-    this.delayedKillTimeout = setTimeout(() => {
+    this.killTimer = setTimeout(() => {
       process.exit(1);
     }, this.killCountdown);
   }
@@ -100,15 +101,16 @@ export class Service {
     this.taskQueue.process((task: TaskData) => {
       return this.sendTokens(task.params)
         .then((tx: string) => {
-          const sendMessage = this.sendMessageHandler[task.channel.name];
-
-          if (!sendMessage) return;
+          const sendMessage = this.getMessageHandler(task.channel.name);
 
           logger.info(
             `send success, ${JSON.stringify(task.channel)} ${JSON.stringify(
               task.params
             )}`
           );
+
+          if (!sendMessage) return;
+
           sendMessage(
             task.channel,
             task.params
@@ -131,10 +133,17 @@ export class Service {
     this.sendMessageHandler[channel] = handler;
   }
 
+  private getMessageHandler (name: string) {
+    return this.sendMessageHandler[name];
+  }
+
   public async queryBalance() {
     const result = await Promise.all(
       this.config.assets.map((token) =>
-        (this.api as any).derive.currencies.balance(this.account.address, token)
+        (this.api as any).derive.currencies.balance(
+          this.account.address,
+          { token: 'ACA' }
+        )
       )
     );
 
@@ -156,16 +165,8 @@ export class Service {
   }
 
   public async sendTokens(config: SendConfig) {
-    let success: (value: any) => void;
-    let failed: (resone: any) => void;
-
-    const resultPromise = new Promise<string>((resolve, reject) => {
-      success = resolve;
-      failed = reject;
-    });
-
+    const deferred = new Deferred<string>();
     const tx = this.buildTx(config);
-
     const sigendTx = await tx.signAsync(this.account);
 
     const unsub = await sigendTx
@@ -210,30 +211,30 @@ export class Service {
           }
 
           if (flag) {
-            success(sigendTx.hash.toString());
+            deferred.resolve(sigendTx.hash.toString());
           } else {
-            failed(errorMessage);
+            deferred.reject(errorMessage);
           }
 
           unsub && unsub();
         }
       })
       .catch((e) => {
-        failed(e);
+        deferred.reject(e);
       });
 
-    return resultPromise;
+    return deferred.promise;
   }
 
   public buildTx(config: SendConfig) {
     return this.api.tx.utility.batch(
       config.map(({ token, balance, dest }) =>
-        this.api.tx.currencies.transfer(dest, token, balance)
+        this.api.tx.currencies.transfer(dest, { token: token }, balance)
       )
     );
   }
 
-  usage() {
+  public usage() {
     return this.template.usage;
   }
 
@@ -259,7 +260,7 @@ export class Service {
     // check address limit
     let currentCount = 0;
     try {
-      currentCount = await this.storage.getKeyCount(`address_${address}`);
+      currentCount = await this.storage.getKeyCount(`service_${strategy}_${address}`);
     } catch (e) {
       throw new Error(this.getErrorMessage("CHECK_LIMIT_FAILED"));
     }
@@ -287,10 +288,7 @@ export class Service {
 
     // increase address limit count
     try {
-      await this.storage.incrKeyCount(
-        `address_${address}`,
-        strategyDetail.frequency
-      );
+      await this.storage.incrKeyCount(`address_${strategy}_${address}`, strategyDetail.frequency);
     } catch (e) {
       throw new Error(this.getErrorMessage("UPDATE_LIMIT_FAILED"));
     }
@@ -305,7 +303,7 @@ export class Service {
     } catch (e) {
       logger.error(e);
 
-      await this.storage.decrKeyCount(`address_${address}`);
+      await this.storage.decrKeyCount(`service_${strategy}_${address}`);
 
       throw new Error(this.getErrorMessage("INSERT_TASK_FAILED"));
     }

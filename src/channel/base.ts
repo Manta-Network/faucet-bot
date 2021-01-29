@@ -10,6 +10,10 @@ export class ChannelBase {
     ) {}
 
     async checkLimit (account: string) {
+        if (!this.frequency || !this.limit) {
+            return true;
+        }
+
         const key = this.getKey(account);
         const count = await this.storage.getKeyCount(key);
 

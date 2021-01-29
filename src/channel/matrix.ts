@@ -122,22 +122,17 @@ export class MatrixChannel extends ChannelBase {
       const address = param1;
 
       try {
-        // increase key count immediately
         await this.updateKeyCount(account);
 
-        await this.service
-          .faucet({
-            strategy: "normal",
-            address: address,
-            channel: {
-              name: this.channelName,
-              account: account,
-              roomId: roomId,
-            },
-          })
-          .catch((e) => {
-            throw new Error(e);
-          });
+        await this.service.faucet({
+          strategy: "normal",
+          address: address,
+          channel: {
+            name: this.channelName,
+            account: account,
+            roomId: roomId,
+          },
+        });
       } catch (e) {
         await this.rollbackKeyCount(account);
 

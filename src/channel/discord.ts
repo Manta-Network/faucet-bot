@@ -3,7 +3,6 @@ import { Storage } from "../util/storage";
 import { Service } from "../services";
 import { Config } from "../util/config";
 import { ChannelBase } from "./base";
-import logger from "../util/logger";
 
 interface DiscordChannelConfig {
   config: Config["channel"]["discord"];
@@ -100,23 +99,18 @@ export class DiscordChannel extends ChannelBase {
       const address = param1;
 
       try {
-        // increase key count immediately
         await this.updateKeyCount(account);
 
-        await this.service
-          .faucet({
-            strategy: "normal",
-            address: address,
-            channel: {
-              channelId: msg.channel.id,
-              name: this.channelName,
-              account: account,
-              accountName: name,
-            },
-          })
-          .catch((e) => {
-            throw e;
-          });
+        await this.service.faucet({
+          strategy: "normal",
+          address: address,
+          channel: {
+            channelId: msg.channel.id,
+            name: this.channelName,
+            account: account,
+            accountName: name,
+          },
+        });
       } catch (e) {
         await this.rollbackKeyCount(account);
 
