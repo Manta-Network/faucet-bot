@@ -18,8 +18,6 @@ export class DiscordChannel extends ChannelBase {
   constructor(config: DiscordChannelConfig) {
     super(
       "discord",
-      config.config.limit,
-      config.config.frequency,
       config.storage
     );
 
@@ -88,19 +86,9 @@ export class DiscordChannel extends ChannelBase {
     }
 
     if (command === "!drip") {
-      const isReachLimit = await this.checkLimit(account);
-
-      if (isReachLimit) {
-        msg.reply(this.service.getErrorMessage("LIMIT", { account: name }));
-
-        return;
-      }
-
       const address = param1;
 
       try {
-        await this.updateKeyCount(account);
-
         await this.service.faucet({
           strategy: "normal",
           address: address,
@@ -112,8 +100,6 @@ export class DiscordChannel extends ChannelBase {
           },
         });
       } catch (e) {
-        await this.rollbackKeyCount(account);
-
         msg.reply(e.message ? e.message : this.service.getErrorMessage("COMMON_ERROR", { account }));
       }
     }

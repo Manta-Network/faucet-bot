@@ -6,7 +6,7 @@ import { options } from "@acala-network/api";
 import { loadConfig } from "./util/config";
 import logger from "./util/logger";
 import { Storage } from "./util/storage";
-import { TaskQueue } from "./task-queue";
+import { TaskQueue } from "./services/task-queue";
 import api from "./channel/api";
 import { Service } from "./services";
 import { MatrixChannel } from "./channel/matrix";
@@ -23,12 +23,12 @@ async function run() {
   const keyring = new Keyring({ type: "sr25519" });
   const account = keyring.addFromMnemonic(config.faucet.account.mnemonic);
   const storage = new Storage(config.storage);
-  const taskQueue = new TaskQueue(config.task);
+  const task = new TaskQueue(config.task);
 
   const service = new Service({
     account,
     storage,
-    taskQueue,
+    task,
     config: config.faucet,
     template: config.template,
   });
@@ -45,25 +45,29 @@ async function run() {
     logger.info(`🚀 faucet api launced at port:${config.channel.api.port}.`);
   });
 
-  // const matrix = new MatrixChannel({
-  //   config: config.channel.matrix,
-  //   storage,
-  //   service,
-  // });
+  if (config.channel.matrix.enable) {
+    const matrix = new MatrixChannel({
+      config: config.channel.matrix,
+      storage,
+      service,
+    });
 
-  // await matrix.start().then(() => {
-  //   logger.info(`🚀 matrix channel launced success`);
-  // });
+    await matrix.start().then(() => {
+      logger.info(`🚀 matrix channel launced success`);
+    });
+  }
 
-  // const discord = new DiscordChannel({
-  //   config: config.channel.discord,
-  //   storage,
-  //   service,
-  // });
+  if (config.channel.discord.enable) {
+    const discord = new DiscordChannel({
+      config: config.channel.discord,
+      storage,
+      service,
+    });
 
-  // await discord.start().then(() => {
-  //   logger.info(`🚀 discord channel launced success`);
-  // });
+    await discord.start().then(() => {
+      logger.info(`🚀 discord channel launced success`);
+    });
+  }
 }
 
 run();

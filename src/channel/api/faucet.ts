@@ -1,6 +1,5 @@
 import Router from "koa-router";
 import { Service } from "../../services";
-import logger from "../../util/logger";
 import { Storage } from "../../util/storage";
 import { Config } from "../../util/config";
 
@@ -18,17 +17,8 @@ export const sendAssets = (service: Service, storage: Storage, config: Config['c
   }
 
   const account = ctx.request.body.account;
-  const strategy = ctx?.request?.body?.strategy || 'normal';
-  const key = `api-${account}-${strategy}`;
 
   try {
-
-    const keyCount = await storage.incrKeyCount(key, config.frequency);
-
-    if (keyCount > config.limit) {
-      throw new Error(service.getErrorMessage('LIMIT', { account }));
-    }
-
     const result = await service.faucet({
       strategy: ctx?.request?.body?.strategy || "normal",
       address: ctx.request.body.address,
@@ -43,13 +33,9 @@ export const sendAssets = (service: Service, storage: Storage, config: Config['c
       mssage: result,
     };
   } catch (e) {
-    await storage.decrKeyCount(key);
-
     ctx.response.body = {
       code: 500,
-      message: (e as Error).message,
+      mssage: e.message,
     };
-
-    logger.error(e);
   }
 };

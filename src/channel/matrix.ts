@@ -19,8 +19,6 @@ export class MatrixChannel extends ChannelBase {
   constructor(config: MatrixChannelConfig) {
     super(
       "matrix",
-      config.config.limit,
-      config.config.frequency,
       config.storage
     );
 
@@ -108,22 +106,9 @@ export class MatrixChannel extends ChannelBase {
     }
 
     if (command === "!drip") {
-      const isReachLimit = await this.checkLimit(account);
-
-      if (isReachLimit) {
-        this.sendMessage(
-          roomId,
-          this.service.getErrorMessage("LIMIT", { account })
-        );
-
-        return;
-      }
-
       const address = param1;
 
       try {
-        await this.updateKeyCount(account);
-
         await this.service.faucet({
           strategy: "normal",
           address: address,
@@ -134,8 +119,6 @@ export class MatrixChannel extends ChannelBase {
           },
         });
       } catch (e) {
-        await this.rollbackKeyCount(account);
-
         this.sendMessage(
           roomId,
           e.message ? e.message : this.service.getErrorMessage("COMMON_ERROR", { account })

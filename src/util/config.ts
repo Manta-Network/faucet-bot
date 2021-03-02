@@ -17,6 +17,7 @@ export interface Config {
     };
     strategy: {
       [k in string]: {
+        checkAccount: boolean;
         amounts: { asset: string; amount: number }[];
         limit: number;
         frequency: [string, OpUnitType];
@@ -30,20 +31,16 @@ export interface Config {
   channel: {
     api: {
       port: number | number;
-      limit: number;
-      frequency: [string, OpUnitType];
     };
     matrix: {
+      enable: boolean;
       token: string;
       userId: string;
-      limit: number;
-      frequency: [string, OpUnitType];
     };
     discord: {
+      enable: boolean;
       activeChannelName: string;
       token: string;
-      limit: number;
-      frequency: [string, OpUnitType];
     };
   };
   template: {

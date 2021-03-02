@@ -3,8 +3,10 @@ import { Config } from "../util/config";
 import { SendConfig } from "../types";
 
 export interface TaskData {
+  address: string;
   channel: Record<string, string>;
   params: SendConfig;
+  strategy: string
 }
 
 type TaskConfig = Config["task"];
@@ -20,7 +22,7 @@ export class TaskQueue {
   }
 
   async insert(task: TaskData) {
-    return this.queue.add(task, { attempts: 5, backoff: 5000 });
+    return this.queue.add(task, { attempts: 0, backoff: 5000 });
   }
 
   process(callback: (task: TaskData) => Promise<any>) {

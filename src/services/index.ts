@@ -1,5 +1,5 @@
 import { ApiPromise } from "@polkadot/api";
-import { template } from "lodash";
+import { add, template } from "lodash";
 import BN from "bignumber.js";
 import { ITuple } from "@polkadot/types/types";
 import { Balance } from "@acala-network/types/interfaces";
@@ -10,7 +10,7 @@ import { KeyringPair } from "@polkadot/keyring/types";
 import { Config } from "../util/config";
 import { Storage } from "../util/storage";
 import { SendConfig, MessageHandler } from "../types";
-import { TaskQueue, TaskData } from "../task-queue";
+import { TaskQueue, TaskData } from "./task-queue";
 import logger from "../util/logger";
 import { Deferred } from "../util/deferred";
 
@@ -19,10 +19,10 @@ interface FaucetServiceConfig {
   template: Config["template"];
   config: Config["faucet"];
   storage: Storage;
-  taskQueue: TaskQueue;
+  task: TaskQueue;
 }
 
-interface FaucetParams {
+interface RequestFaucetParams {
   address: string;
   strategy: string;
   channel: {
@@ -51,7 +51,7 @@ export class Service {
   private template: Config["template"];
   private config: Config["faucet"];
   private storage: Storage;
-  private taskQueue: TaskQueue;
+  private task: TaskQueue;
   private sendMessageHandler!: Record<string, MessageHandler>;
   private killCountdown: number = 1000 * 60;
   private killTimer!: NodeJS.Timeout | null;
@@ -61,13 +61,13 @@ export class Service {
     config,
     template,
     storage,
-    taskQueue,
+    task,
   }: FaucetServiceConfig) {
     this.account = account;
     this.config = config;
     this.template = template;
     this.storage = storage;
-    this.taskQueue = taskQueue;
+    this.task = task;
     this.sendMessageHandler = {};
 
     this.onConnected = this.onConnected.bind(this);
@@ -98,34 +98,39 @@ export class Service {
 
     this.api.on("connected", this.onConnected);
 
-    this.taskQueue.process((task: TaskData) => {
-      return this.sendTokens(task.params)
+    this.task.process((task: TaskData) => {
+      const { address, channel, strategy, params } = task;
+      return this.sendTokens(params)
         .then((tx: string) => {
-          const sendMessage = this.getMessageHandler(task.channel.name);
+          const sendMessage = this.getMessageHandler(channel.name);
 
           logger.info(
-            `send success, ${JSON.stringify(task.channel)} ${JSON.stringify(
-              task.params
-            )}`
+            `send success, requred from ${channel.name}/${channel.account} channel with address:${address} ${JSON.stringify(task.params)}`
           );
 
           if (!sendMessage) return;
 
           sendMessage(
-            task.channel,
-            task.params
-              .map(
-                (item) =>
-                  `${item.token}: ${formatToReadable(
-                    item.balance,
-                    this.config.precision
-                  )}`
-              )
+            channel,
+            params
+              .map((item) => `${item.token}: ${formatToReadable(item.balance, this.config.precision)}`)
               .join(", "),
             tx
           );
         })
-        .catch(logger.error);
+        .catch(async (e) => {
+          logger.log(e);
+
+          const address = params;
+          const account = channel.account;
+          const channelName = channel.name;
+
+          await this.storage.decrKeyCount(`service_${strategy}_${address}`);
+
+          if (account) {
+            await this.storage.decrKeyCount(`service_${strategy}_${channelName}_${account}`);
+          }
+        });
     });
   }
 
@@ -133,8 +138,8 @@ export class Service {
     this.sendMessageHandler[channel] = handler;
   }
 
-  private getMessageHandler (name: string) {
-    return this.sendMessageHandler[name];
+  private getMessageHandler (channel: string) {
+    return this.sendMessageHandler[channel];
   }
 
   public async queryBalance() {
@@ -142,7 +147,7 @@ export class Service {
       this.config.assets.map((token) =>
         (this.api as any).derive.currencies.balance(
           this.account.address,
-          { token: 'ACA' }
+          { Token: token }
         )
       )
     );
@@ -238,7 +243,7 @@ export class Service {
     return this.template.usage;
   }
 
-  async faucet({ strategy, address, channel }: FaucetParams): Promise<any> {
+  async faucet({ strategy, address, channel }: RequestFaucetParams): Promise<any> {
     logger.info(
       `requect faucet, ${JSON.stringify(
         strategy
@@ -247,8 +252,11 @@ export class Service {
 
     const strategyDetail = this.config.strategy[strategy];
 
+    const account = channel?.account;
+    const channelName = channel.name;
+
     try {
-      await this.taskQueue.checkPendingTask();
+      await this.task.checkPendingTask();
     } catch (e) {
       throw new Error(this.getErrorMessage("PADDING_TASK_MAX"));
     }
@@ -257,15 +265,25 @@ export class Service {
       throw new Error(this.getErrorMessage("NO_STRAGEGY"));
     }
 
+    // check account limit
+    let accountCount = 0;
+    if (account && strategyDetail.checkAccount) {
+      accountCount = await this.storage.getKeyCount(`service_${strategy}_${channelName}_${account}`);
+    }
+
+    if (strategyDetail.limit && accountCount >= strategyDetail.limit) {
+      throw new Error(this.getErrorMessage("LIMIT", { account: channel.account || address }));
+    }
+
     // check address limit
-    let currentCount = 0;
+    let addressCount = 0;
     try {
-      currentCount = await this.storage.getKeyCount(`service_${strategy}_${address}`);
+      addressCount = await this.storage.getKeyCount(`service_${strategy}_${address}`);
     } catch (e) {
       throw new Error(this.getErrorMessage("CHECK_LIMIT_FAILED"));
     }
 
-    if (strategyDetail.limit && currentCount >= strategyDetail.limit) {
+    if (strategyDetail.limit && addressCount >= strategyDetail.limit) {
       throw new Error(
         this.getErrorMessage("LIMIT", { account: channel.account || address })
       );
@@ -286,17 +304,23 @@ export class Service {
       throw new Error(this.getErrorMessage("CHECK_TX_FAILED", { error: e }));
     }
 
-    // increase address limit count
+    // increase account & address limit count
     try {
-      await this.storage.incrKeyCount(`address_${strategy}_${address}`, strategyDetail.frequency);
+      if (account && strategyDetail.checkAccount) {
+        await this.storage.incrKeyCount(`service_${strategy}_${channelName}_${account}`, strategyDetail.frequency);
+      }
+
+      await this.storage.incrKeyCount(`service_${strategy}_${address}`, strategyDetail.frequency);
     } catch (e) {
       throw new Error(this.getErrorMessage("UPDATE_LIMIT_FAILED"));
     }
 
     try {
-      const result = await this.taskQueue.insert({
-        channel: channel,
-        params: params,
+      const result = await this.task.insert({
+        address,
+        strategy,
+        channel,
+        params
       });
 
       return result;
@@ -304,6 +328,10 @@ export class Service {
       logger.error(e);
 
       await this.storage.decrKeyCount(`service_${strategy}_${address}`);
+
+      if (account) {
+        await this.storage.decrKeyCount(`service_${strategy}_${channelName}_${account}`);
+      }
 
       throw new Error(this.getErrorMessage("INSERT_TASK_FAILED"));
     }
