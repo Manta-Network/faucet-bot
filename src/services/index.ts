@@ -100,12 +100,15 @@ export class Service {
 
     this.task.process((task: TaskData) => {
       const { address, channel, strategy, params } = task;
+      const account = channel.account;
+      const channelName = channel.name;
+      const sendMessage = this.getMessageHandler(channelName);
+
       return this.sendTokens(params)
         .then((tx: string) => {
-          const sendMessage = this.getMessageHandler(channel.name);
 
           logger.info(
-            `send success, requred from ${channel.name}/${channel.account} channel with address:${address} ${JSON.stringify(task.params)}`
+            `send success, requred from ${channelName}/${account} channel with address:${address} ${JSON.stringify(task.params)}`
           );
 
           if (!sendMessage) return;
@@ -119,11 +122,7 @@ export class Service {
           );
         })
         .catch(async (e) => {
-          logger.log(e);
-
-          const address = params;
-          const account = channel.account;
-          const channelName = channel.name;
+          logger.error(e);
 
           await this.storage.decrKeyCount(`service_${strategy}_${address}`);
 
