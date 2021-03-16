@@ -1,8 +1,8 @@
 import { ApiPromise } from "@polkadot/api";
 import { add, template } from "lodash";
-import BN from "bignumber.js";
+import { Token, FixedPointNumber } from "@acala-network/sdk-core"
 import { ITuple } from "@polkadot/types/types";
-import { Balance } from "@acala-network/types/interfaces";
+import { Balance, CurrencyId } from "@acala-network/types/interfaces";
 import { DispatchError } from "@polkadot/types/interfaces";
 import { ApiOptions } from "@polkadot/api/types";
 import { KeyringPair } from "@polkadot/keyring/types";
@@ -33,16 +33,16 @@ interface RequestFaucetParams {
 
 export function formatToReadable(
   num: string | number,
-  precision: number
-): string {
-  return new BN(num).div(new BN(10 ** precision)).toFixed(4);
+  token: CurrencyId 
+): number {
+  return FixedPointNumber.fromInner(num, Token.fromCurrencyId(token).decimal).toNumber();
 }
 
 export function formatToSendable(
   num: string | number,
-  precision: number
+  token: CurrencyId 
 ): string {
-  return new BN(num).multipliedBy(new BN(10 ** precision)).toFixed(0);
+  return new FixedPointNumber(num, Token.fromCurrencyId(token).decimal).toChainData();
 }
 
 export class Service {
@@ -108,7 +108,7 @@ export class Service {
         .then((tx: string) => {
 
           logger.info(
-            `send success, requred from ${channelName}/${account} channel with address:${address} ${JSON.stringify(task.params)}`
+            `send success, required from ${channelName}/${account} channel with address:${address} ${JSON.stringify(task.params)}`
           );
 
           if (!sendMessage) return;
@@ -116,7 +116,7 @@ export class Service {
           sendMessage(
             channel,
             params
-              .map((item) => `${item.token}: ${formatToReadable(item.balance, this.config.precision)}`)
+              .map((item) => `${item.token}: ${formatToReadable(item.balance, this.api.createType('CurrencyId' as any, { Token: this.config.assets }))}`)
               .join(", "),
             tx
           );
@@ -157,7 +157,7 @@ export class Service {
         balance: result[index]
           ? formatToReadable(
               (result[index] as Balance).toString(),
-              this.config.precision
+              this.api.createType('CurrencyId' as any, { Token: token })
             )
           : 0,
       };
@@ -291,7 +291,7 @@ export class Service {
     // check build tx
     const params = strategyDetail.amounts.map((item) => ({
       token: item.asset,
-      balance: formatToSendable(item.amount, this.config.precision),
+      balance: formatToSendable(item.amount, this.api.createType('CurrencyId' as any, { Token: item.asset })),
       dest: address,
     }));
 

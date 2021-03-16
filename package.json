@@ -5,31 +5,32 @@
   "author": "qiuhao <qiuhao951@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "@acala-network/api": "^0.6.2-17",
+    "@acala-network/api": "^0.6.2-27",
+    "@acala-network/sdk-core": "^0.6.2-27",
     "bignumber.js": "^9.0.0",
     "bull": "^3.18.0",
     "dayjs": "^1.8.35",
+    "discord.js": "^12.3.1",
     "koa": "^2.13.0",
     "koa-bodyparser": "^4.3.0",
     "koa-router": "^9.4.0",
     "lodash": "^4.17.20",
     "matrix-bot-sdk": "^0.5.6",
     "matrix-js-sdk": "^8.2.0",
-    "discord.js": "^12.3.1",
     "redis": "^3.0.2",
     "toml": "^3.0.0",
     "util": "^0.12.3",
     "winston": "^3.3.3"
   },
   "devDependencies": {
-    "typescript": "^4.0.2",
-    "ts-node": "^9.0.0",
     "@types/bull": "^3.14.2",
     "@types/koa": "^2.11.4",
     "@types/koa-bodyparser": "^4.3.0",
     "@types/koa-router": "^7.4.1",
     "@types/lodash": "^4.14.161",
     "@types/node": "^14.6.3",
-    "@types/redis": "^2.8.27"
+    "@types/redis": "^2.8.27",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.2"
   }
 }
