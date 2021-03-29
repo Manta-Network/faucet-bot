@@ -65,7 +65,7 @@ export class DiscordChannel extends ChannelBase {
 
     if (channelName !== this.config.activeChannelName && command === "!drip") {
       if (msg.member) {
-        const guildChannels = Array.from(msg.member.guild.channels.cache);
+        const guildChannels = msg.member.guild.channels.cache;
 
         for (const [_, channel] of guildChannels) {
           if (channel.name === this.config.activeChannelName && channel.type === "text") {
