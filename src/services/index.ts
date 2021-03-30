@@ -116,7 +116,7 @@ export class Service {
           sendMessage(
             channel,
             params
-              .map((item) => `${item.token}: ${formatToReadable(item.balance, this.api.createType('CurrencyId' as any, { Token: this.config.assets }))}`)
+	      .map((item) => `${item.token}: ${formatToReadable(item.balance, this.api.createType('CurrencyId' as any, { Token: item.token }))}`)
               .join(", "),
             tx
           );

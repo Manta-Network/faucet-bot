@@ -1,7 +1,7 @@
 module.exports = {
     apps: [
       {
-        name: "faucet",
+        name: "faucet-tc6",
         script: "./node_modules/.bin/ts-node",
         args: "src/index.ts",
         instances: 1,
