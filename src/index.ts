@@ -35,15 +35,46 @@ async function run() {
 
   const provider = new WsProvider(config.faucet.endpoint);
 
-  await service.connect(options({ provider }));
-
+  await service.connect(
+    options({
+      provider,
+      // see: https://polkadot.js.org/docs/api/start/types.extend/
+      types: {
+        CurrencyId: {
+          _enum: [
+            'MA',
+            //'TMA',
+          ]
+        },
+      },
+      typesChain: {
+        'Manta Testnet': {
+          PrivateTransferPayload: '[u8;608]',
+          ReclaimPayload: '[u8;512]',
+          Shards: {},
+          Amount: 'i128',
+          ma: {
+            CurrencyIdOf: 'CurrencyId',
+            AmountOf: 'Amount',
+            AccountInfo: 'AccountInfoWithDualRefCount',
+            PrivateTransferPayload: 'PrivateTransferPayload',
+            ReclaimPayload: 'ReclaimPayload',
+          },
+        },
+      },
+    })
+  );
   const chainName = await service.getChainName();
-
   logger.info(`✊ connected to ${chainName}, faucet is ready.`);
 
-  api({ config: config.channel.api, service, storage }).then(() => {
-    logger.info(`🚀 faucet api launced at port:${config.channel.api.port}.`);
-  });
+  try {
+    logger.info(`🚀 attempt faucet api launch...`);
+    api({ config: config.channel.api, service, storage }).then(() => {
+      logger.info(`🚀 faucet api launched at port:${config.channel.api.port}.`);
+    });
+  } catch (e) {
+    logger.error(e);
+  }
 
   if (config.channel.matrix.enable) {
     const matrix = new MatrixChannel({
@@ -51,10 +82,14 @@ async function run() {
       storage,
       service,
     });
-
-    await matrix.start().then(() => {
-      logger.info(`🚀 matrix channel launced success`);
-    });
+    try {
+      logger.info(`🚀 attempt matrix channel connect...`);
+      await matrix.start().then(() => {
+        logger.info(`🚀 matrix channel connect success`);
+      });
+    } catch (e) {
+      logger.error(e);
+    }
   }
 
   if (config.channel.discord.enable) {
@@ -63,10 +98,14 @@ async function run() {
       storage,
       service,
     });
-
-    await discord.start().then(() => {
-      logger.info(`🚀 discord channel launced success`);
-    });
+    try {
+      logger.info(`🚀 attempt discord channel connect...`);
+      await discord.start().then(() => {
+        logger.info(`🚀 discord channel connect success`);
+      });
+    } catch (e) {
+      logger.error(e);
+    }
   }
 }
 

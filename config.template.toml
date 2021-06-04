@@ -57,16 +57,16 @@ Usage:
 """
 balance = "<%= account %> The faucet has ${balance} remaining."
 success = """
-  Sent <%= account %> <%= amount %>. [View on Subscan](https://acala-testnet.subscan.io/extrinsic/<%= tx %>)
+  Sent <%= account %> <%= amount %>. [View on Subscan](https://manta-testnet.subscan.io/extrinsic/<%= tx %>)
 """
 
 riotSuccess = """
-  Sent <%= account %> <%= amount %>. <a href="https://acala-testnet.subscan.io/extrinsic/<%= tx %>">Viewd on Subscan</a>
+  Sent <%= account %> <%= amount %>. <a href="https://manta-testnet.subscan.io/extrinsic/<%= tx %>">Viewd on Subscan</a>
 """
 
 [template.error]
-"COMMON_ERROR" = "<%= account %> something error, please check your input."
-"PADDING_TASK_MAX" = "Fauct is busy, please retry later."
+"COMMON_ERROR" = "<%= account %> error, please check your input."
+"PADDING_TASK_MAX" = "Faucet is busy, please retry later."
 "LIMIT" = "<%= account %> has reached their quota. Only request 2 per 1 day."
 "NO_STRATEGY" = "No strategy found."
 "CHECK_TX_FAILED" = "Build Extrinsic Failed"

@@ -1,8 +1,7 @@
 import { ApiPromise } from "@polkadot/api";
 import { add, template } from "lodash";
-import { Token, FixedPointNumber } from "@acala-network/sdk-core"
+import { FixedPointNumber } from "@acala-network/sdk-core"
 import { ITuple } from "@polkadot/types/types";
-import { Balance, CurrencyId } from "@acala-network/types/interfaces";
 import { DispatchError } from "@polkadot/types/interfaces";
 import { ApiOptions } from "@polkadot/api/types";
 import { KeyringPair } from "@polkadot/keyring/types";
@@ -13,6 +12,8 @@ import { SendConfig, MessageHandler } from "../types";
 import { TaskQueue, TaskData } from "./task-queue";
 import logger from "../util/logger";
 import { Deferred } from "../util/deferred";
+
+const MantaPrecision = 12;
 
 interface FaucetServiceConfig {
   account: KeyringPair;
@@ -31,18 +32,11 @@ interface RequestFaucetParams {
   } & Record<string, string>;
 }
 
-export function formatToReadable(
-  num: string | number,
-  token: CurrencyId 
-): number {
-  return FixedPointNumber.fromInner(num, Token.fromCurrencyId(token).decimal).toNumber();
-}
-
 export function formatToSendable(
   num: string | number,
-  token: CurrencyId 
+  precision: number 
 ): string {
-  return new FixedPointNumber(num, Token.fromCurrencyId(token).decimal).toChainData();
+  return new FixedPointNumber(num, precision).toChainData();
 }
 
 export class Service {
@@ -116,7 +110,7 @@ export class Service {
           sendMessage(
             channel,
             params
-	      .map((item) => `${item.token}: ${formatToReadable(item.balance, this.api.createType('CurrencyId' as any, { Token: item.token }))}`)
+              .map((item) => `${item.token}: ${FixedPointNumber.fromInner(item.balance.toString(), MantaPrecision).toNumber()}`)
               .join(", "),
             tx
           );
@@ -142,23 +136,22 @@ export class Service {
   }
 
   public async queryBalance() {
+    logger.info(`queryBalance - account: ${this.account.address}, assets: ${this.config.assets.join(', ')}`);
     const result = await Promise.all(
       this.config.assets.map((token) =>
         (this.api as any).derive.currencies.balance(
           this.account.address,
-          { Token: token }
+          token
         )
       )
     );
+    logger.info(`queryBalance - result: ${JSON.stringify(result)}`);
 
-    return this.config.assets.map((token, index) => {
+    return this.config.assets.map((asset, index) => {
       return {
-        token: token,
+        token: asset,
         balance: result[index]
-          ? formatToReadable(
-              (result[index] as Balance).toString(),
-              this.api.createType('CurrencyId' as any, { Token: token })
-            )
+          ? FixedPointNumber.fromInner(result[index].toString(), MantaPrecision).toNumber()
           : 0,
       };
     });
@@ -231,9 +224,11 @@ export class Service {
   }
 
   public buildTx(config: SendConfig) {
+    logger.info(`buildTx( config: ${JSON.stringify(config)} )`);
     return this.api.tx.utility.batch(
       config.map(({ token, balance, dest }) =>
-        this.api.tx.currencies.transfer(dest, { token: token }, balance)
+        //this.api.tx.currencies.transfer(dest, { token: token }, balance)
+        this.api.tx.balances.transfer(dest, balance)
       )
     );
   }
@@ -243,11 +238,7 @@ export class Service {
   }
 
   async faucet({ strategy, address, channel }: RequestFaucetParams): Promise<any> {
-    logger.info(
-      `requect faucet, ${JSON.stringify(
-        strategy
-      )}, ${address}, ${JSON.stringify(channel)}`
-    );
+    logger.info(`faucet( strategy: ${JSON.stringify(strategy)}, address: ${address}, channel: ${JSON.stringify(channel)} )`);
 
     const strategyDetail = this.config.strategy[strategy];
 
@@ -291,7 +282,7 @@ export class Service {
     // check build tx
     const params = strategyDetail.amounts.map((item) => ({
       token: item.asset,
-      balance: formatToSendable(item.amount, this.api.createType('CurrencyId' as any, { Token: item.asset })),
+      balance: formatToSendable(item.amount, MantaPrecision),
       dest: address,
     }));
 
@@ -299,7 +290,6 @@ export class Service {
       this.buildTx(params);
     } catch (e) {
       logger.error(e);
-
       throw new Error(this.getErrorMessage("CHECK_TX_FAILED", { error: e }));
     }
 

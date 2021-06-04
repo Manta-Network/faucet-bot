@@ -1,6 +1,6 @@
 {
   "name": "faucet-bot",
-  "version": "1.0.1",
+  "version": "0.0.1",
   "main": "index.js",
   "author": "qiuhao <qiuhao951@gmail.com>",
   "license": "MIT",

@@ -3,6 +3,7 @@ import { Storage } from "../util/storage";
 import { Service } from "../services";
 import { Config } from "../util/config";
 import { ChannelBase } from "./base";
+import logger from "../util/logger";
 
 interface DiscordChannelConfig {
   config: Config["channel"]["discord"];
@@ -20,17 +21,17 @@ export class DiscordChannel extends ChannelBase {
 
     this.config = config.config;
     this.service = config.service;
-
-    // create matrix client
     this.client = new Discord.Client();
 
     this.sendSuccessMessage = this.sendSuccessMessage.bind(this);
   }
 
   async start() {
+    logger.info(`discord started`);
     await this.client.login(this.config.token);
 
     this.service.registMessageHander(this.channelName, this.sendSuccessMessage);
+    logger.info(`discord message handler registered for ${this.channelName}`);
     this.client.on("message", (msg) => {
       this.messageHandler(msg);
     });
@@ -63,30 +64,29 @@ export class DiscordChannel extends ChannelBase {
 
     const [command, param1] = this.getCommand(msg.content);
 
-    if (channelName !== this.config.activeChannelName && command === "!drip") {
+    logger.info(command);
+
+    if (channelName !== this.config.activeChannelName && ["!balance", "!drip", "!faucet"].includes(command)) {
       if (msg.member) {
         const guildChannels = msg.member.guild.channels.cache;
-
         for (const [_, channel] of guildChannels) {
           if (channel.name === this.config.activeChannelName && channel.type === "text") {
             const textChannel = channel as Discord.TextChannel;
-            textChannel.send(`${msg.author.toString()} you can try using the \`!drip\` command here!`)
+            textChannel.send(`${msg.author.toString()} you can try using the \`${command}\` command here!`)
             
             break;
           }
         }
       }
-    } else {
+    } else if (channelName === this.config.activeChannelName) {
       if (command === "!faucet") {
         msg.reply(this.service.usage());
       }
 
       if (command === "!balance") {
         const balances = await this.service.queryBalance();
-
-        msg.reply(
+        msg.channel.send(
           this.service.getMessage("balance", {
-            account: "",
             balance: balances
               .map((item) => `${item.token}: ${item.balance}`)
               .join(", "),
@@ -109,7 +109,7 @@ export class DiscordChannel extends ChannelBase {
             },
           });
         } catch (e) {
-          msg.reply(
+          msg.channel.send(
             e.message
               ? e.message
               : this.service.getErrorMessage("COMMON_ERROR", { account })
