@@ -7,69 +7,62 @@ redis = "redis://127.0.0.1:6379"
 maxPendingCount = 20
 
 [faucet]
-endpoint = "ENDPOINT"
-precision = 18
-assets = ['ACA', 'AUSD']
+endpoint = "wss://ws.f1.testnet.manta.network"
+precision = 12
+assets = ['MA']
 
 [faucet.account]
-mnemonic = "CUSTOM MNEMONIC"
+mnemonic = "faucet_mnemonic"
   
 [faucet.strategy]
 [faucet.strategy.normal]
 amounts = [
-  { asset = 'ACA', amount = 2 },
-  { asset = 'AUSD', amount = 2000 }
+  { asset = 'MA', amount = 2 }
 ]
 limit = 2
 frequency = ["1", "day"]
 
-[faucet.strategy.ren]
-amounts = [
-  { asset = 'RENBTC', amount = 0.2 }
-]
-limit = 10
-frequency = ["1", "month"]
-
 [channel]
+
 [channel.api]
 port = 3000
 limit = 2
 frequency = ["1", "day"]
 
 [channel.matrix]
-token = "TEST_TOKEN"
-userId = "@test-bot:matrix.org"
+enable = true
+token = "matrix_token"
+userId = "@calamari-rockefeller:matrix.org"
 limit = 2
 frequency = ["1", "day"]
 
 [channel.discord]
-activeChannelName = 'faucet-test-channel'
-token = "TEST_TOKEN"
+enable = true
+activeChannelName = 'calamari-faucet'
+token = "discord_token"
 limit = 2
 frequency = ["1", "day"]
 
 [template]
 usage = """
-Usage:
-  !balance - Get the faucet's balance.
-  !drip <Address> - Send Test Tokens to <Address>.
-  !faucet - Prints usage information.
+usage:
+  !balance - get the balance of the calamari testnet faucet account.
+  !drip <account_address> - send calamari testnet tokens to <account_address>.
+  !faucet - display all trigger commands that calamari-rockefeller will respond to.
 """
-balance = "<%= account %> The faucet has ${balance} remaining."
-success = """
-  Sent <%= account %> <%= amount %>. [View on Subscan](https://manta-testnet.subscan.io/extrinsic/<%= tx %>)
-"""
+balance = "*has a balance of ${balance}*"
+success = "*sends <%= amount %>, to: <%= account %>*"
 
 riotSuccess = """
-  Sent <%= account %> <%= amount %>. <a href="https://manta-testnet.subscan.io/extrinsic/<%= tx %>">Viewd on Subscan</a>
+  *sends <%= amount %>, to: <%= account %>.* <a href="https://manta-testnet.subscan.io/extrinsic/<%= tx %>">track</a>
 """
 
 [template.error]
-"COMMON_ERROR" = "<%= account %> error, please check your input."
-"PADDING_TASK_MAX" = "Faucet is busy, please retry later."
-"LIMIT" = "<%= account %> has reached their quota. Only request 2 per 1 day."
-"NO_STRATEGY" = "No strategy found."
-"CHECK_TX_FAILED" = "Build Extrinsic Failed"
-"CHECK_LIMIT_FAILED" = "Check Limit Error"
-"UPDATE_LIMIT_FAILED" = "Update Limit Error"
-"INSERT_TASK_FAILED" = "Insert Task Error"
+"COMMON_ERROR" = "<%= account %> error, maybe check request and try again..."
+"PADDING_TASK_MAX" = "*feels overwhelmed.* maybe try later..."
+"LIMIT" = "*remembers doling out calamari to <%= account %> not long ago.* maybe try later..."
+"NO_STRATEGY" = "*fails to find a strategy*"
+"CHECK_TX_FAILED" = "*fails to build extrinsic*"
+"CHECK_LIMIT_FAILED" = "*fails to check limit*"
+"UPDATE_LIMIT_FAILED" = "*fails to update limit*"
+"INSERT_TASK_FAILED" = "*fails to insert task*"
