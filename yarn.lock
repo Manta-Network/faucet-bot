@@ -592,10 +592,10 @@
     "@types/connect" "*"
     "@types/node" "*"
 
-"@types/bull@^3.14.2":
-  version "3.15.0"
-  resolved "https://registry.yarnpkg.com/@types/bull/-/bull-3.15.0.tgz#69c518d4e7a53056f287cebcc4ef4ffe91aaf201"
-  integrity sha512-54Y1RYkJt6i+4dH45w4gZOP6fyhksTvOImfgBYAxgq/nt5ZrES4xFWwOzt2bxAgSR7FMH9fwvaiJN/pripPzag==
+"@types/bull@^3.15.6":
+  version "3.15.6"
+  resolved "https://registry.yarnpkg.com/@types/bull/-/bull-3.15.6.tgz#55594c6965f2f37b905d644d7e00987900f5e911"
+  integrity sha512-6M8r7uT6+3w1HNwinvzM5unPYAIlVBsCG9/7HI0dKNUWj1N9dM3JY81FNTFuG6WWFeaQvLCAH3rXpOs1/YaCww==
   dependencies:
     "@types/ioredis" "*"
 
