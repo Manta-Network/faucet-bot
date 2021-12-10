@@ -592,12 +592,13 @@
     "@types/connect" "*"
     "@types/node" "*"
 
-"@types/bull@^3.14.2":
-  version "3.15.0"
-  resolved "https://registry.yarnpkg.com/@types/bull/-/bull-3.15.0.tgz#69c518d4e7a53056f287cebcc4ef4ffe91aaf201"
-  integrity sha512-54Y1RYkJt6i+4dH45w4gZOP6fyhksTvOImfgBYAxgq/nt5ZrES4xFWwOzt2bxAgSR7FMH9fwvaiJN/pripPzag==
+"@types/bull@^3.15.7":
+  version "3.15.7"
+  resolved "https://registry.yarnpkg.com/@types/bull/-/bull-3.15.7.tgz#a9d7fb332cc02dc021d0eb234b9604b356e9e6de"
+  integrity sha512-7NC7XN5NoS0A+leJ/dR69ZfKaegOlCZaii/xGgKnCyh1UYisRncibImb7VMwrc3OdJcbDJt6+4om70TeNl3J7g==
   dependencies:
     "@types/ioredis" "*"
+    "@types/redis" "^2.8.0"
 
 "@types/connect@*":
   version "3.4.34"
@@ -735,10 +736,10 @@
   resolved "https://registry.yarnpkg.com/@types/range-parser/-/range-parser-1.2.3.tgz#7ee330ba7caafb98090bece86a5ee44115904c2c"
   integrity sha512-ewFXqrQHlFsgc09MK5jP5iR7vumV/BYayNC6PgJO2LPe8vrnNFyjQjSppfEngITi0qvfKtzFvgKymGheFM9UOA==
 
-"@types/redis@^2.8.27":
-  version "2.8.28"
-  resolved "https://registry.yarnpkg.com/@types/redis/-/redis-2.8.28.tgz#5862b2b64aa7f7cbc76dafd7e6f06992b52c55e3"
-  integrity sha512-8l2gr2OQ969ypa7hFOeKqtFoY70XkHxISV0pAwmQ2nm6CSPb1brmTmqJCGGrekCo+pAZyWlNXr+Kvo6L/1wijA==
+"@types/redis@^2.8.0", "@types/redis@^2.8.27":
+  version "2.8.32"
+  resolved "https://registry.yarnpkg.com/@types/redis/-/redis-2.8.32.tgz#1d3430219afbee10f8cfa389dad2571a05ecfb11"
+  integrity sha512-7jkMKxcGq9p242exlbsVzuJb57KqHRhNl4dHoQu2Y5v9bCAbtIXXH0R3HleSQW4CTOqpHIYUW3t6tpUj4BVQ+w==
   dependencies:
     "@types/node" "*"
 
