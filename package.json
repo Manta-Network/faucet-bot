@@ -6,7 +6,7 @@
   "license": "MIT",
   "dependencies": {
     "@acala-network/api": "^0.6.2-27",
-    "@acala-network/sdk-core": "^0.6.2-27",
+    "@acala-network/sdk-core": "^4.1.1",
     "bignumber.js": "^9.0.0",
     "bull": "^3.18.0",
     "dayjs": "^1.8.35",
