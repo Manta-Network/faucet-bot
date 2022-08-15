@@ -9,7 +9,7 @@
     "@acala-network/sdk-core": "^0.6.2-27",
     "bignumber.js": "^9.0.0",
     "bull": "^3.18.0",
-    "dayjs": "^1.8.35",
+    "dayjs": "^1.11.5",
     "discord.js": "^12.3.1",
     "koa": "^2.13.0",
     "koa-bodyparser": "^4.3.0",
